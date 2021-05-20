@@ -1,6 +1,6 @@
-# BLog Sample
+# Laravel Admin
 
-This is blog project sample include below list
+This is laravel admin project sample include below list
 
 - roles and permission
 - image uploading
