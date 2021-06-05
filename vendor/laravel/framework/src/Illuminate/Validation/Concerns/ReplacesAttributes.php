@@ -105,6 +105,20 @@ trait ReplacesAttributes
     }
 
     /**
+     * Replace all place-holders for the multiple_of rule.
+     *
+     * @param  string  $message
+     * @param  string  $attribute
+     * @param  string  $rule
+     * @param  array  $parameters
+     * @return string
+     */
+    protected function replaceMultipleOf($message, $attribute, $rule, $parameters)
+    {
+        return str_replace(':value', $parameters[0] ?? '', $message);
+    }
+
+    /**
      * Replace all place-holders for the in rule.
      *
      * @param  string  $message
@@ -348,6 +362,46 @@ trait ReplacesAttributes
      * @return string
      */
     protected function replaceRequiredUnless($message, $attribute, $rule, $parameters)
+    {
+        $other = $this->getDisplayableAttribute($parameters[0]);
+
+        $values = [];
+
+        foreach (array_slice($parameters, 1) as $value) {
+            $values[] = $this->getDisplayableValue($parameters[0], $value);
+        }
+
+        return str_replace([':other', ':values'], [$other, implode(', ', $values)], $message);
+    }
+
+    /**
+     * Replace all place-holders for the prohibited_if rule.
+     *
+     * @param  string  $message
+     * @param  string  $attribute
+     * @param  string  $rule
+     * @param  array  $parameters
+     * @return string
+     */
+    protected function replaceProhibitedIf($message, $attribute, $rule, $parameters)
+    {
+        $parameters[1] = $this->getDisplayableValue($parameters[0], Arr::get($this->data, $parameters[0]));
+
+        $parameters[0] = $this->getDisplayableAttribute($parameters[0]);
+
+        return str_replace([':other', ':value'], $parameters, $message);
+    }
+
+    /**
+     * Replace all place-holders for the prohibited_unless rule.
+     *
+     * @param  string  $message
+     * @param  string  $attribute
+     * @param  string  $rule
+     * @param  array  $parameters
+     * @return string
+     */
+    protected function replaceProhibitedUnless($message, $attribute, $rule, $parameters)
     {
         $other = $this->getDisplayableAttribute($parameters[0]);
 

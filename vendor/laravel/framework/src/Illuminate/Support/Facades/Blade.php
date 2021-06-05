@@ -15,6 +15,7 @@ namespace Illuminate\Support\Facades;
  * @method static void compile(string|null $path = null)
  * @method static void component(string $class, string|null $alias = null, string $prefix = '')
  * @method static void components(array $components, string $prefix = '')
+ * @method static void componentNamespace(string $namespace, string $prefix)
  * @method static void directive(string $name, callable $handler)
  * @method static void extend(callable $compiler)
  * @method static void if(string $name, callable $callback)
@@ -25,6 +26,7 @@ namespace Illuminate\Support\Facades;
  * @method static void withDoubleEncoding()
  * @method static void withoutComponentTags()
  * @method static void withoutDoubleEncoding()
+ * @method static void stringable(string|callable $class, callable|null $handler)
  *
  * @see \Illuminate\View\Compilers\BladeCompiler
  */

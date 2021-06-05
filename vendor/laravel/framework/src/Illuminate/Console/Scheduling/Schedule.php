@@ -19,6 +19,14 @@ class Schedule
 {
     use Macroable;
 
+    const SUNDAY = 0;
+    const MONDAY = 1;
+    const TUESDAY = 2;
+    const WEDNESDAY = 3;
+    const THURSDAY = 4;
+    const FRIDAY = 5;
+    const SATURDAY = 6;
+
     /**
      * All of the events on the schedule.
      *
@@ -59,6 +67,8 @@ class Schedule
      *
      * @param  \DateTimeZone|string|null  $timezone
      * @return void
+     *
+     * @throws \RuntimeException
      */
     public function __construct($timezone = null)
     {
@@ -143,6 +153,8 @@ class Schedule
      * @param  string|null  $queue
      * @param  string|null  $connection
      * @return void
+     *
+     * @throws \RuntimeException
      */
     protected function dispatchToQueue($job, $queue, $connection)
     {
@@ -293,6 +305,8 @@ class Schedule
      * Get the job dispatcher, if available.
      *
      * @return \Illuminate\Contracts\Bus\Dispatcher
+     *
+     * @throws \RuntimeException
      */
     protected function getDispatcher()
     {

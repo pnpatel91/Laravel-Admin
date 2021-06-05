@@ -2,6 +2,19 @@
 
 All notable changes of the PHPUnit 8.5 release series are documented in this file using the [Keep a CHANGELOG](https://keepachangelog.com/) principles.
 
+## [8.5.16] - 2021-06-05
+
+### Changed
+
+* The test result cache (the storage for which is implemented in `PHPUnit\Runner\DefaultTestResultCache`) no longer uses PHP's `serialize()` and `unserialize()` function for persistence. It now uses a versioned JSON format instead that is independent of PHP implementation details (see [#3581](https://github.com/sebastianbergmann/phpunit/issues/3581) and [#4662](https://github.com/sebastianbergmann/phpunit/pull/4662) for examples why this is a problem). When PHPUnit tries to load the test result cache from a file that does not exist, or from a file that does not contain data in JSON format, or from a file that contains data in a JSON format version other than the one used by the currently running PHPUnit version, then this is considered to be a "cache miss". An empty `DefaultTestResultCache` object is created in this case. This should also prevent PHPUnit from crashing when trying to load a test result cache file created by a different version of PHPUnit (see [#4580](https://github.com/sebastianbergmann/phpunit/issues/4580) for example).
+
+### Fixed
+
+* [#4663](https://github.com/sebastianbergmann/phpunit/issues/4663): `TestCase::expectError()` works on PHP 7.3, but not on PHP >= 7.4
+* [#4678](https://github.com/sebastianbergmann/phpunit/pull/4678): Stubbed methods with `iterable` return types should return empty array by default
+* [#4692](https://github.com/sebastianbergmann/phpunit/issues/4692): Annotations in single-line doc-comments are not handled correctly
+* [#4694](https://github.com/sebastianbergmann/phpunit/issues/4694): `TestCase::getMockFromWsdl()` does not work with PHP 8.1-dev
+
 ## [8.5.15] - 2021-03-17
 
 ### Fixed
@@ -130,6 +143,7 @@ All notable changes of the PHPUnit 8.5 release series are documented in this fil
 * [#3967](https://github.com/sebastianbergmann/phpunit/issues/3967): Cannot double interface that extends interface that extends `\Throwable`
 * [#3968](https://github.com/sebastianbergmann/phpunit/pull/3968): Test class run in a separate PHP process are passing when `exit` called inside
 
+[8.5.16]: https://github.com/sebastianbergmann/phpunit/compare/8.5.15...8.5.16
 [8.5.15]: https://github.com/sebastianbergmann/phpunit/compare/8.5.14...8.5.15
 [8.5.14]: https://github.com/sebastianbergmann/phpunit/compare/8.5.13...8.5.14
 [8.5.13]: https://github.com/sebastianbergmann/phpunit/compare/8.5.12...8.5.13

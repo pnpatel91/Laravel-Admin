@@ -62,7 +62,7 @@ class DatabaseManager implements ConnectionResolverInterface
         $this->factory = $factory;
 
         $this->reconnector = function ($connection) {
-            $this->reconnect($connection->getName());
+            $this->reconnect($connection->getNameWithReadWriteType());
         };
     }
 
@@ -165,13 +165,17 @@ class DatabaseManager implements ConnectionResolverInterface
      */
     protected function configure(Connection $connection, $type)
     {
-        $connection = $this->setPdoForType($connection, $type);
+        $connection = $this->setPdoForType($connection, $type)->setReadWriteType($type);
 
         // First we'll set the fetch mode and a few other dependencies of the database
         // connection. This method basically just configures and prepares it to get
         // used by the application. Once we're finished we'll return it back out.
         if ($this->app->bound('events')) {
             $connection->setEventDispatcher($this->app['events']);
+        }
+
+        if ($this->app->bound('db.transactions')) {
+            $connection->setTransactionManager($this->app['db.transactions']);
         }
 
         // Here we'll set a reconnector callback. This reconnector can be any callable
@@ -271,11 +275,15 @@ class DatabaseManager implements ConnectionResolverInterface
      */
     protected function refreshPdoConnections($name)
     {
-        $fresh = $this->makeConnection($name);
+        [$database, $type] = $this->parseConnectionName($name);
+
+        $fresh = $this->configure(
+            $this->makeConnection($database), $type
+        );
 
         return $this->connections[$name]
-                                ->setPdo($fresh->getRawPdo())
-                                ->setReadPdo($fresh->getRawReadPdo());
+                    ->setPdo($fresh->getRawPdo())
+                    ->setReadPdo($fresh->getRawReadPdo());
     }
 
     /**
@@ -353,6 +361,19 @@ class DatabaseManager implements ConnectionResolverInterface
     public function setReconnector(callable $reconnector)
     {
         $this->reconnector = $reconnector;
+    }
+
+    /**
+     * Set the application instance used by the manager.
+     *
+     * @param  \Illuminate\Contracts\Foundation\Application  $app
+     * @return $this
+     */
+    public function setApplication($app)
+    {
+        $this->app = $app;
+
+        return $this;
     }
 
     /**

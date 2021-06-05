@@ -1,0 +1,38 @@
+{
+    "name": "brian2694/laravel-toastr",
+    
+    "description": "toastr.js for Laravel",
+    "keywords": ["toastr", "notification", "laravel", "php"],
+    "homepage": "https://github.com/brian2694/laravel-toastr",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "brian2694",
+            "email": "briansanchez2694@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Brian2694\\Toastr\\": "src/"
+        },
+        "files": [
+            "src/helper.php"
+        ]
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Brian2694\\Toastr\\ToastrServiceProvider"
+            ],
+            "aliases": {
+                "Toastr": "Brian2694\\Toastr\\Facades\\Toastr"
+            }
+        }
+    },
+    "minimum-stability": "dev",
+    "require": {
+    "php": ">=5.5.0",
+        "illuminate/support": ">=5.2.7",
+        "illuminate/session": ">=5.2.7"
+    }
+}

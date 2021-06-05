@@ -50,6 +50,13 @@ class Connection implements ConnectionInterface
     protected $database;
 
     /**
+     * The type of the connection.
+     *
+     * @var string|null
+     */
+    protected $type;
+
+    /**
      * The table prefix for the connection.
      *
      * @var string
@@ -111,6 +118,13 @@ class Connection implements ConnectionInterface
      * @var int
      */
     protected $transactions = 0;
+
+    /**
+     * The transaction manager instance.
+     *
+     * @var \Illuminate\Database\DatabaseTransactionsManager
+     */
+    protected $transactionsManager;
 
     /**
      * Indicates if changes have been made to the database.
@@ -861,6 +875,16 @@ class Connection implements ConnectionInterface
     }
 
     /**
+     * Reset the record modification state.
+     *
+     * @return void
+     */
+    public function forgetRecordModificationState()
+    {
+        $this->recordsModified = false;
+    }
+
+    /**
      * Is Doctrine available?
      *
      * @return bool
@@ -891,7 +915,13 @@ class Connection implements ConnectionInterface
      */
     public function getDoctrineSchemaManager()
     {
-        return $this->getDoctrineDriver()->getSchemaManager($this->getDoctrineConnection());
+        $connection = $this->getDoctrineConnection();
+
+        // Doctrine v2 expects one parameter while v3 expects two. 2nd will be ignored on v2...
+        return $this->getDoctrineDriver()->getSchemaManager(
+            $connection,
+            $connection->getDatabasePlatform()
+        );
     }
 
     /**
@@ -907,7 +937,7 @@ class Connection implements ConnectionInterface
             $this->doctrineConnection = new DoctrineConnection(array_filter([
                 'pdo' => $this->getPdo(),
                 'dbname' => $this->getDatabaseName(),
-                'driver' => $driver->getName(),
+                'driver' => method_exists($driver, 'getName') ? $driver->getName() : null,
                 'serverVersion' => $this->getConfig('server_version'),
             ]), $driver);
         }
@@ -1020,6 +1050,16 @@ class Connection implements ConnectionInterface
     public function getName()
     {
         return $this->getConfig('name');
+    }
+
+    /**
+     * Get the database connection full name.
+     *
+     * @return string|null
+     */
+    public function getNameWithReadWriteType()
+    {
+        return $this->getName().($this->readWriteType ? '::'.$this->readWriteType : '');
     }
 
     /**
@@ -1146,6 +1186,29 @@ class Connection implements ConnectionInterface
     }
 
     /**
+     * Set the transaction manager instance on the connection.
+     *
+     * @param  \Illuminate\Database\DatabaseTransactionsManager  $manager
+     * @return $this
+     */
+    public function setTransactionManager($manager)
+    {
+        $this->transactionsManager = $manager;
+
+        return $this;
+    }
+
+    /**
+     * Unset the transaction manager for this connection.
+     *
+     * @return void
+     */
+    public function unsetTransactionManager()
+    {
+        $this->transactionsManager = null;
+    }
+
+    /**
      * Determine if the connection is in a "dry run".
      *
      * @return bool
@@ -1224,6 +1287,19 @@ class Connection implements ConnectionInterface
     public function setDatabaseName($database)
     {
         $this->database = $database;
+
+        return $this;
+    }
+
+    /**
+     * Set the read / write type of the connection.
+     *
+     * @param  string|null  $readWriteType
+     * @return $this
+     */
+    public function setReadWriteType($readWriteType)
+    {
+        $this->readWriteType = $readWriteType;
 
         return $this;
     }

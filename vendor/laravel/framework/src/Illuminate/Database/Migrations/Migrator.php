@@ -13,6 +13,7 @@ use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use ReflectionClass;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class Migrator
@@ -185,9 +186,9 @@ class Migrator
         // First we will resolve a "real" instance of the migration class from this
         // migration file name. Once we have the instances we can run the actual
         // command such as "up" or "down", or we can just simulate the action.
-        $migration = $this->resolve(
-            $name = $this->getMigrationName($file)
-        );
+        $migration = $this->resolvePath($file);
+
+        $name = $this->getMigrationName($file);
 
         if ($pretend) {
             return $this->pretendToRun($migration, 'up');
@@ -199,14 +200,14 @@ class Migrator
 
         $this->runMigration($migration, 'up');
 
-        $runTime = round(microtime(true) - $startTime, 2);
+        $runTime = number_format((microtime(true) - $startTime) * 1000, 2);
 
         // Once we have run a migrations class, we will log that it was run in this
         // repository so that we don't try to run it next time we do a migration
         // in the application. A migration repository keeps the migrate order.
         $this->repository->log($name, $batch);
 
-        $this->note("<info>Migrated:</info>  {$name} ({$runTime} seconds)");
+        $this->note("<info>Migrated:</info>  {$name} ({$runTime}ms)");
     }
 
     /**
@@ -348,9 +349,9 @@ class Migrator
         // First we will get the file name of the migration so we can resolve out an
         // instance of the migration. Once we get an instance we can either run a
         // pretend execution of the migration or we can run the real migration.
-        $instance = $this->resolve(
-            $name = $this->getMigrationName($file)
-        );
+        $instance = $this->resolvePath($file);
+
+        $name = $this->getMigrationName($file);
 
         $this->note("<comment>Rolling back:</comment> {$name}");
 
@@ -362,14 +363,14 @@ class Migrator
 
         $this->runMigration($instance, 'down');
 
-        $runTime = round(microtime(true) - $startTime, 2);
+        $runTime = number_format((microtime(true) - $startTime) * 1000, 2);
 
         // Once we have successfully run the migration "down" we will remove it from
         // the migration repository so it will be considered to have not been run
         // by the application then will be able to fire by any later operation.
         $this->repository->delete($migration);
 
-        $this->note("<info>Rolled back:</info>  {$name} ({$runTime} seconds)");
+        $this->note("<info>Rolled back:</info>  {$name} ({$runTime}ms)");
     }
 
     /**
@@ -413,6 +414,12 @@ class Migrator
         foreach ($this->getQueries($migration, $method) as $query) {
             $name = get_class($migration);
 
+            $reflectionClass = new ReflectionClass($migration);
+
+            if ($reflectionClass->isAnonymous()) {
+                $name = $this->getMigrationName($reflectionClass->getFileName());
+            }
+
             $this->note("<info>{$name}:</info> {$query['query']}");
         }
     }
@@ -448,9 +455,39 @@ class Migrator
      */
     public function resolve($file)
     {
-        $class = Str::studly(implode('_', array_slice(explode('_', $file), 4)));
+        $class = $this->getMigrationClass($file);
 
         return new $class;
+    }
+
+    /**
+     * Resolve a migration instance from a migration path.
+     *
+     * @param  string  $path
+     * @return object
+     */
+    protected function resolvePath(string $path)
+    {
+        $class = $this->getMigrationClass($this->getMigrationName($path));
+
+        if (class_exists($class) && realpath($path) == (new ReflectionClass($class))->getFileName()) {
+            return new $class;
+        }
+
+        $migration = $this->files->getRequire($path);
+
+        return is_object($migration) ? $migration : new $class;
+    }
+
+    /**
+     * Generate a migration class name based on the migration file name.
+     *
+     * @param  string  $migrationName
+     * @return string
+     */
+    protected function getMigrationClass(string $migrationName): string
+    {
+        return Str::studly(implode('_', array_slice(explode('_', $migrationName), 4)));
     }
 
     /**
@@ -606,6 +643,26 @@ class Migrator
     public function repositoryExists()
     {
         return $this->repository->repositoryExists();
+    }
+
+    /**
+     * Determine if any migrations have been run.
+     *
+     * @return bool
+     */
+    public function hasRunAnyMigrations()
+    {
+        return $this->repositoryExists() && count($this->repository->getRan()) > 0;
+    }
+
+    /**
+     * Delete the migration repository data store.
+     *
+     * @return void
+     */
+    public function deleteRepository()
+    {
+        return $this->repository->deleteRepository();
     }
 
     /**

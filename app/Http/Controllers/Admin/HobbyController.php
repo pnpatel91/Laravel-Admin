@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 
 use Yajra\DataTables\Facades\DataTables;
+use Brian2694\Toastr\Facades\Toastr;
 
 class HobbyController extends Controller
 {
@@ -51,7 +52,8 @@ class HobbyController extends Controller
             $data->updated_by = $id;
             $data->save();
 
-            Session::flash('success', 'Hobby Creation Successful');
+            Toastr::success('Hobby Creation Successful', 'Successful');
+            //Session::flash('success', 'Hobby Creation Successful');
 
             return redirect()->route('hobby.index');
 
@@ -94,8 +96,8 @@ class HobbyController extends Controller
         $dataDb->updated_by = $user;
 
         $dataDb->save();
-
-        Session::flash('success', 'A hobby updated successfully.');
+        Toastr::success('A hobby updated successfully.', 'Successful');
+        //Session::flash('success', 'A hobby updated successfully.');
 
         return redirect('admin/hobby');
     }
@@ -104,7 +106,9 @@ class HobbyController extends Controller
     {
         $hobby = Hobby::find($id);
         $hobby->delete();
-        return redirect('admin/hobby')->with('success', 'A post deleted successfully.');
+        Toastr::success('A post deleted successfully.', 'Successful');
+        //return redirect('admin/hobby')->with('success', 'A post deleted successfully.');
+        return redirect('admin/hobby');
     }
 
     /**

@@ -7,7 +7,7 @@ use Illuminate\Support\Traits\Macroable;
 
 class PendingResourceRegistration
 {
-    use Macroable;
+    use CreatesRegularExpressionRouteConstraints, Macroable;
 
     /**
      * The resource registrar.
@@ -191,6 +191,19 @@ class PendingResourceRegistration
     public function shallow($shallow = true)
     {
         $this->options['shallow'] = $shallow;
+
+        return $this;
+    }
+
+    /**
+     * Define the callable that should be invoked on a missing model exception.
+     *
+     * @param  callable  $callback
+     * @return $this
+     */
+    public function missing($callback)
+    {
+        $this->options['missing'] = $callback;
 
         return $this;
     }

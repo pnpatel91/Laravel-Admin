@@ -46,6 +46,7 @@ class BroadcastEvent implements ShouldQueue
         $this->event = $event;
         $this->tries = property_exists($event, 'tries') ? $event->tries : null;
         $this->timeout = property_exists($event, 'timeout') ? $event->timeout : null;
+        $this->afterCommit = property_exists($event, 'afterCommit') ? $event->afterCommit : null;
     }
 
     /**
@@ -59,8 +60,14 @@ class BroadcastEvent implements ShouldQueue
         $name = method_exists($this->event, 'broadcastAs')
                 ? $this->event->broadcastAs() : get_class($this->event);
 
+        $channels = Arr::wrap($this->event->broadcastOn());
+
+        if (empty($channels)) {
+            return;
+        }
+
         $broadcaster->broadcast(
-            Arr::wrap($this->event->broadcastOn()), $name,
+            $channels, $name,
             $this->getPayloadFromEvent($this->event)
         );
     }

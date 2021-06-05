@@ -3,12 +3,15 @@
 namespace Illuminate\Support;
 
 use Closure;
+use Illuminate\Support\Traits\Conditionable;
 use Illuminate\Support\Traits\Macroable;
+use Illuminate\Support\Traits\Tappable;
+use JsonSerializable;
 use Symfony\Component\VarDumper\VarDumper;
 
-class Stringable
+class Stringable implements JsonSerializable
 {
-    use Macroable;
+    use Conditionable, Macroable, Tappable;
 
     /**
      * The underlying string value.
@@ -81,6 +84,16 @@ class Stringable
     public function basename($suffix = '')
     {
         return new static(basename($this->value, $suffix));
+    }
+
+    /**
+     * Get the basename of the class path.
+     *
+     * @return static
+     */
+    public function classBasename()
+    {
+        return new static(class_basename($this->value));
     }
 
     /**
@@ -195,15 +208,19 @@ class Stringable
     }
 
     /**
-     * Split a string using a regular expression.
+     * Split a string using a regular expression or by length.
      *
-     * @param  string  $pattern
+     * @param  string|int  $pattern
      * @param  int  $limit
      * @param  int  $flags
      * @return \Illuminate\Support\Collection
      */
     public function split($pattern, $limit = -1, $flags = 0)
     {
+        if (filter_var($pattern, FILTER_VALIDATE_INT) !== false) {
+            return collect(mb_str_split($this->value, $pattern));
+        }
+
         $segments = preg_split($pattern, $this->value, $limit, $flags);
 
         return ! empty($segments) ? collect($segments) : collect();
@@ -305,10 +322,21 @@ class Stringable
     }
 
     /**
+     * Convert GitHub flavored Markdown into HTML.
+     *
+     * @param  array  $options
+     * @return static
+     */
+    public function markdown(array $options = [])
+    {
+        return new static(Str::markdown($this->value, $options));
+    }
+
+    /**
      * Get the string matching the given pattern.
      *
      * @param  string  $pattern
-     * @return static|null
+     * @return static
      */
     public function match($pattern)
     {
@@ -336,6 +364,17 @@ class Stringable
         }
 
         return collect($matches[1] ?? $matches[0]);
+    }
+
+    /**
+     * Determine if the string matches the given pattern.
+     *
+     * @param  string  $pattern
+     * @return bool
+     */
+    public function test($pattern)
+    {
+        return $this->match($pattern)->isNotEmpty();
     }
 
     /**
@@ -386,6 +425,17 @@ class Stringable
     }
 
     /**
+     * Call the given callback and return a new string.
+     *
+     * @param  callable  $callback
+     * @return static
+     */
+    public function pipe(callable $callback)
+    {
+        return new static(call_user_func($callback, $this));
+    }
+
+    /**
      * Get the plural form of an English word.
      *
      * @param  int  $count
@@ -419,6 +469,29 @@ class Stringable
     }
 
     /**
+     * Remove any occurrence of the given string in the subject.
+     *
+     * @param  string|array<string>  $search
+     * @param  bool  $caseSensitive
+     * @return static
+     */
+    public function remove($search, $caseSensitive = true)
+    {
+        return new static(Str::remove($search, $this->value, $caseSensitive));
+    }
+
+    /**
+     * Repeat the string.
+     *
+     * @param  int  $times
+     * @return static
+     */
+    public function repeat(int $times)
+    {
+        return new static(Str::repeat($this->value, $times));
+    }
+
+    /**
      * Replace the given value in the given string.
      *
      * @param  string|string[]  $search
@@ -427,7 +500,7 @@ class Stringable
      */
     public function replace($search, $replace)
     {
-        return new static(str_replace($search, $replace, $this->value));
+        return new static(Str::replace($search, $replace, $this->value));
     }
 
     /**
@@ -569,7 +642,7 @@ class Stringable
     }
 
     /**
-     * Returns the portion of string specified by the start and length parameters.
+     * Returns the portion of the string specified by the start and length parameters.
      *
      * @param  int  $start
      * @param  int|null  $length
@@ -590,7 +663,7 @@ class Stringable
      */
     public function substrCount($needle, $offset = null, $length = null)
     {
-        return Str::substrCount($this->value, $needle, $offset, $length);
+        return Str::substrCount($this->value, $needle, $offset ?? 0, $length);
     }
 
     /**
@@ -637,25 +710,6 @@ class Stringable
     }
 
     /**
-     * Apply the callback's string changes if the given "value" is true.
-     *
-     * @param  mixed  $value
-     * @param  callable  $callback
-     * @param  callable|null  $default
-     * @return mixed|$this
-     */
-    public function when($value, $callback, $default = null)
-    {
-        if ($value) {
-            return $callback($this, $value) ?: $this;
-        } elseif ($default) {
-            return $default($this, $value) ?: $this;
-        }
-
-        return $this;
-    }
-
-    /**
      * Execute the given callback if the string is empty.
      *
      * @param  callable  $callback
@@ -664,6 +718,23 @@ class Stringable
     public function whenEmpty($callback)
     {
         if ($this->isEmpty()) {
+            $result = $callback($this);
+
+            return is_null($result) ? $this : $result;
+        }
+
+        return $this;
+    }
+
+    /**
+     * Execute the given callback if the string is not empty.
+     *
+     * @param  callable  $callback
+     * @return static
+     */
+    public function whenNotEmpty($callback)
+    {
+        if ($this->isNotEmpty()) {
             $result = $callback($this);
 
             return is_null($result) ? $this : $result;
@@ -682,6 +753,16 @@ class Stringable
     public function words($words = 100, $end = '...')
     {
         return new static(Str::words($this->value, $words, $end));
+    }
+
+    /**
+     * Get the number of words a string contains.
+     *
+     * @return int
+     */
+    public function wordCount()
+    {
+        return str_word_count($this->value);
     }
 
     /**
@@ -706,6 +787,16 @@ class Stringable
         $this->dump();
 
         exit(1);
+    }
+
+    /**
+     * Convert the object to a string when JSON encoded.
+     *
+     * @return string
+     */
+    public function jsonSerialize()
+    {
+        return $this->__toString();
     }
 
     /**

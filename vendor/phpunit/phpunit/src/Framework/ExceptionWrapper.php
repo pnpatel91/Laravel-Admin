@@ -21,7 +21,7 @@ use Throwable;
  * Re-instantiates Exceptions thrown by user-space code to retain their original
  * class names, properties, and stack traces (but without arguments).
  *
- * Unlike PHPUnit\Framework_\Exception, the complete stack of previous Exceptions
+ * Unlike PHPUnit\Framework\Exception, the complete stack of previous Exceptions
  * is processed.
  *
  * @internal This class is not covered by the backward compatibility promise for PHPUnit
@@ -43,6 +43,7 @@ final class ExceptionWrapper extends Exception
         // PDOException::getCode() is a string.
         // @see https://php.net/manual/en/class.pdoexception.php#95812
         parent::__construct($t->getMessage(), (int) $t->getCode());
+
         $this->setOriginalException($t);
     }
 
@@ -103,6 +104,7 @@ final class ExceptionWrapper extends Exception
     /**
      * Method to contain static originalException to exclude it from stacktrace to prevent the stacktrace contents,
      * which can be quite big, from being garbage-collected, thus blocking memory until shutdown.
+     *
      * Approach works both for var_dump() and var_export() and print_r().
      */
     private function originalException(Throwable $exceptionToStore = null): ?Throwable
